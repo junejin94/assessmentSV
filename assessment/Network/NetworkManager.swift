@@ -13,7 +13,7 @@ final class NetworkManager {
 
   private init() {}
 
-  func fetchDetails(id: String, append_to_response: String? = "credits", language: String? = "en-US") async throws -> Movie {
+  func fetchDetails(id: String, append_to_response: String? = "credits", language: String? = "en-US") async throws -> CodableMovie {
     let endpoint = Endpoint.details(id)
     let queryItems = [
       URLQueryItem(name: "language", value: language),
@@ -23,7 +23,7 @@ final class NetworkManager {
     let request = NetworkRequest(host: .api, endpoint: endpoint, queryItems: queryItems)
     let data = try await fetch(request: request)
 
-    return try JSONDecoder().decode(Movie.self, from: data)
+    return try JSONDecoder().decode(CodableMovie.self, from: data)
   }
 
   func fetchCategory(category: MovieCategories, language: String? = "en-US", page: Int = 1, region: String? = "MY") async throws -> ResponseMovieList {
@@ -51,7 +51,7 @@ final class NetworkManager {
 
     let endpoint = Endpoint.custom("/t/p/" + (size ?? "w780") + path)
 
-    let request = NetworkRequest(host: .image, endpoint: endpoint)
+    let request = NetworkRequest(host: .image, endpoint: endpoint, timeoutInterval: 5.0)
     let data = try await fetch(request: request)
 
     return data

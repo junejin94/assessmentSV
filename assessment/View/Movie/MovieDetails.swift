@@ -16,9 +16,10 @@ class vmMovieDetails: ObservableObject {
 
   @Published var poster: Image?
   @Published var backdrop: Image?
+
+  @Published var tagline: String?
   @Published var director: String?
   @Published var topCast: [MoviePersonnel] = []
-  @Published var tagline: String?
 
   var errorTitle = ""
   var errorMessage = ""
@@ -56,22 +57,18 @@ class vmMovieDetails: ObservableObject {
       do {
         let response = try await NetworkManager.shared.fetchDetails(id: id)
 
-        await MainActor.run {
-          response.merge(movie)
+        movie.merge(response)
 
-          director = response.director
-          topCast = response.topCast
-          tagline = response.tagline
+        tagline = movie.tagline
+        director = movie.director
+        topCast = movie.topCast
 
-          Task {
-            await loadPoster()
-            await loadBackdrop()
+        await loadPoster()
+        await loadBackdrop()
 
-            await MainActor.run {
-              state = .loaded
-            }
-          }
-        }
+        Container.shared.saveContext()
+
+        state = .loaded
       } catch {
         state = .failed
 
@@ -87,7 +84,7 @@ class vmMovieDetails: ObservableObject {
 }
 
 struct MovieDetails: View {
-  @ObservedObject var vm: vmMovieDetails
+  @StateObject var vm: vmMovieDetails
 
   @State private var showAlert: Bool = false
 
@@ -205,11 +202,7 @@ struct MovieDetails: View {
         .scrollBounceBehavior(.basedOnSize, axes: [.vertical])
 
       case .failed:
-        ScrollView {
-          Color.clear
-            .frame(width: geo.size.width, height: geo.size.height)
-        }
-        .refreshable {
+        PulldownRefresh {
           Task { await vm.details() }
         }
       }

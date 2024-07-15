@@ -14,6 +14,6 @@ struct assessmentApp: App {
     WindowGroup {
       LandingPage(vm: vmLandingPage())
     }
-    .modelContainer(Container.shared.main)
+    .modelContainer(Container.shared.container)
   }
 }

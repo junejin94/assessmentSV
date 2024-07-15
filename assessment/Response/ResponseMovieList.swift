@@ -10,7 +10,7 @@ import Foundation
 struct ResponseMovieList: Codable {
   var dates: MovieDate?
   var page: Int
-  var results: [Movie]
+  var results: [CodableMovie]
   var total_pages: Int
   var total_results: Int
 }

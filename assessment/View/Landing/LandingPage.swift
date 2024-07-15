@@ -55,16 +55,28 @@ class vmLandingPage: ObservableObject {
         await MainActor.run {
           page = more ? page + 1 : 2
 
+          var movies: [Movie] = []
+
           for result in response.results {
-            context.insert(result)
+            if let movie = try? context.fetch(FetchDescriptor<Movie>(predicate: #Predicate { $0.id == result.id })).first {
+              movie.merge(result)
+              movies.append(movie)
+            } else {
+              let movie = Movie(codable: result)
+
+              context.insert(movie)
+              movies.append(movie)
+            }
           }
+
+          Container.shared.saveContext()
 
           hasMore = response.total_pages >= page
 
           if more {
-            list += response.results
+            list += movies
           } else {
-            list = response.results
+            list = movies
           }
 
           state = .loaded
@@ -111,9 +123,20 @@ struct LandingPage: View {
           Task { await vm.load(context: modelContext) }
         })
         .padding(.bottom, 8)
+        .disabled(!searchText.isEmpty)
 
         if filtered.isEmpty {
-          Spacer()
+          if !filtering {
+            PulldownRefresh {
+              Task { await vm.load(context: modelContext) }
+            }
+          } else {
+            Spacer()
+
+            Text("Empty")
+
+            Spacer()
+          }
         } else {
           MovieList(vm: vmMovieList(list: filtered, filtering: $filtering, refresh: {
             Task { await vm.load(context: modelContext) }
@@ -130,11 +153,11 @@ struct LandingPage: View {
         }
       }
       .padding(.horizontal, 16)
-      .navigationTitle(searchTerm.isEmpty ? vm.selected.rawValue : searchTerm)
+      .navigationTitle(searchTerm.isEmpty ? vm.selected.rawValue : "Search results")
       .navigationBarTitleDisplayMode(.inline)
     }
     .disabled(vm.state == .loading)
-    .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always))
+    .searchable(text: $searchText, prompt: "Search for movies...")
     .alert(
       isPresented: $showAlert,
       content: {
